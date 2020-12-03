@@ -1,9 +1,9 @@
-import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Objects;
 
 // based off https://llimllib.github.io/bloomfilter-tutorial/
 public class StringBloomFilter {
-	boolean filter[]; //todo use a bitset?
+	BitSet filter;
 	int m, k;
 
 	public StringBloomFilter(int m, int k) {
@@ -11,7 +11,7 @@ public class StringBloomFilter {
 		this.m = m; //(1.37MiB) # of bits in filter
 		this.k = k; //number of hash functions to use
 
-		filter = new boolean[m];
+		filter = new BitSet();
 	}
 
 	public StringBloomFilter() {
@@ -34,11 +34,11 @@ public class StringBloomFilter {
 		this.m = m; //(1.37MiB) # of bits in filter
 		this.k = k; //number of hash functions to use
 
-		filter = new boolean[m];
+		filter = new BitSet();
 		char[] charArray = filterString.toCharArray();
 		for (int i = 0, charArrayLength = charArray.length; i < charArrayLength; i++) {
 			char c = charArray[i];
-			filter[i] = c == '1';
+			filter.set(i, c == '1');
 		}
 	}
 
@@ -46,13 +46,13 @@ public class StringBloomFilter {
 		//todo could be more efficent
 		//https://github.com/Claudenw/BloomFilter/wiki/Bloom-Filters----An-overview
 		for (int i = 0; i < k; i++) {
-			filter[Math.abs(MurmurHash.hash(s.getBytes(), i)) % (m - 1)] = true;
+			filter.set(Math.abs(MurmurHash.hash(s.getBytes(), i)) % (m - 1), true);
 		}
 	}
 
 	public boolean contains(String s) {
 		for (int i = 0; i < k; i++) {
-			if (!filter[Math.abs(MurmurHash.hash(s.getBytes(), i)) % (m - 1)]) {
+			if (!filter.get(Math.abs(MurmurHash.hash(s.getBytes(), i)) % (m - 1))) {
 				return false;
 			}
 		}
@@ -62,7 +62,8 @@ public class StringBloomFilter {
 	@Override
 	public String toString() {
 		StringBuilder out = new StringBuilder();
-		for (boolean b : filter) {
+		for (int i = 0; i < filter.size(); i++) {
+			boolean b = filter.get(i);
 			out.append(b ? "1" : "0");
 		}
 		return "filter=" + out.toString() +
@@ -77,13 +78,11 @@ public class StringBloomFilter {
 		StringBloomFilter filter1 = (StringBloomFilter) o;
 		return m == filter1.m &&
 				k == filter1.k &&
-				Arrays.equals(filter, filter1.filter);
+				Objects.equals(filter, filter1.filter);
 	}
 
 	@Override
 	public int hashCode() {
-		int result = Objects.hash(m, k);
-		result = 31 * result + Arrays.hashCode(filter);
-		return result;
+		return Objects.hash(filter, m, k);
 	}
 }
